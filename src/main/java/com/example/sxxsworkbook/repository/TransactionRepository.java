@@ -18,6 +18,6 @@ public interface TransactionRepository extends JpaRepository<Transaction, Long> 
      * Stream tất cả transactions – dùng với @Transactional(readOnly=true)
      * để Hibernate scroll cursor thay vì load hết vào RAM.
      */
-    @Query("SELECT t FROM Transaction t ORDER BY t.createdAt DESC")
+    @Query("SELECT t FROM Transaction t ORDER BY t.createdAt DESC, t.id DESC")
     Stream<Transaction> streamAllOrderByCreatedAtDesc();
 }

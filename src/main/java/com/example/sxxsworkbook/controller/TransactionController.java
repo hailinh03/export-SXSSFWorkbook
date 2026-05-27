@@ -22,17 +22,7 @@ import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.Map;
 
-/**
- * REST Controller cho Transaction.
- *
- * Base URL: /api/transactions
- *
- * ──────────────────────────────────────────────────────
- * API EXCEL:
- *  GET /api/transactions/export/xssf   → XSSFWorkbook  (❌ OOM với -Xmx16m)
- *  GET /api/transactions/export/sxssf  → SXSSFWorkbook (✅ an toàn)
- * ──────────────────────────────────────────────────────
- */
+
 @RestController
 @RequestMapping("/transactions")
 @RequiredArgsConstructor
@@ -73,15 +63,11 @@ public class TransactionController {
         return ResponseEntity.noContent().build();
     }
 
-    // ═══════════════════════════════════════════════════════════
     // Seed Data API
-    // ═══════════════════════════════════════════════════════════
-
     @PostMapping("/seed")
     @Operation(
         summary     = "Tạo dữ liệu mẫu ngẫu nhiên",
-        description = "Tạo N records transaction ngẫu nhiên để test xuất Excel. " +
-                      "Khuyến nghị: 500-1000 records để thấy hiệu ứng OOM với XSSF."
+        description = "Tạo N records transaction ngẫu nhiên để test xuất Excel. "
     )
     public ResponseEntity<Map<String, Object>> seedData(
             @Parameter(description = "Số records muốn tạo (mặc định 500)")
@@ -107,30 +93,10 @@ public class TransactionController {
     // EXCEL EXPORT APIs
     /**
      * API 1: Xuất Excel bằng XSSFWorkbook.
-     *
-     * ⚠️ CẢNH BÁO: API này sẽ throw OutOfMemoryError khi JVM được giới hạn
-     *              heap nhỏ (ví dụ: -Xmx16m) và DB có nhiều records.
-     *
-     * Nguyên nhân: XSSFWorkbook load TOÀN BỘ workbook vào RAM cùng lúc.
-     * Mỗi cell tốn ~500 bytes → 10.000 records × 32 cột ≈ 160MB heap minimum.
      */
     @GetMapping("/export/xssf")
     @Operation(
-        summary     = "Xuất Excel – XSSFWorkbook (⚠️ OOM Risk)",
-        description = """
-            Xuất toàn bộ transactions ra file Excel dùng **XSSFWorkbook** (Apache POI).
-            
-            **⚠️ CẢNH BÁO:** API này sẽ bị **OutOfMemoryError** nếu:
-            - JVM được cấu hình heap nhỏ (e.g. `-Xmx16m`)
-            - DB có nhiều records
-            
-            **Nguyên nhân:** XSSFWorkbook giữ toàn bộ workbook trong RAM.
-            Mỗi row ≈ 10KB → 10.000 rows ≈ 100MB heap.
-            
-            Dùng API này để **demo lỗi OOM**, sau đó so sánh với /export/sxssf.
-            
-            **sendEmail=true**: Gửi file qua email trước khi trả về download.
-            """
+        summary     = "Xuất Excel – XSSFWorkbook (OOM Risk)"
     )
     public ResponseEntity<byte[]> exportXssf(
             @Parameter(description = "Gửi email kèm file Excel sau khi xuất?")
@@ -167,27 +133,12 @@ public class TransactionController {
 
     /**
      * API 2: Xuất Excel bằng SXSSFWorkbook.
-     *
-     * ✅ AN TOÀN: SXSSFWorkbook chỉ giữ N rows trong memory (mặc định 100).
-     * Các rows cũ được flush xuống disk temp file.
-     * → Phù hợp xuất hàng triệu records mà không bị OOM.
      */
     @GetMapping("/export/sxssf")
     @Operation(
-        summary     = "Xuất Excel – SXSSFWorkbook (✅ Streaming, OOM-Safe)",
+        summary     = "Xuất Excel – SXSSFWorkbook (Streaming, OOM-Safe)",
         description = """
             Xuất toàn bộ transactions ra file Excel dùng **SXSSFWorkbook** (Streaming XSSF).
-            
-            **✅ AN TOÀN:** SXSSFWorkbook chỉ giữ N rows trong RAM (config: `row-access-window-size=100`).
-            Rows cũ hơn được flush xuống disk temp file → **không bị OutOfMemoryError** dù heap nhỏ.
-            
-            **Cơ chế:**
-            - `new SXSSFWorkbook(100)` → window = 100 rows trong RAM
-            - `setCompressTempFiles(true)` → nén temp file trên disk
-            - `stream()` từ DB thay vì `findAll()` → không load hết vào memory
-            - `workbook.dispose()` sau khi xong → dọn temp files
-            
-            **sendEmail=true**: Gửi file qua email sau khi xuất thành công.
             """
     )
     public ResponseEntity<byte[]> exportSxssf(
@@ -215,10 +166,7 @@ public class TransactionController {
         }
     }
 
-    // ═══════════════════════════════════════════════════════════
     // Private helpers
-    // ═══════════════════════════════════════════════════════════
-
     private ResponseEntity<byte[]> buildExcelResponse(byte[] bytes, String filename) {
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.parseMediaType(
@@ -234,11 +182,11 @@ public class TransactionController {
             String htmlBody = buildEmailHtml(workbookType, filename, excelBytes.length);
 
             emailService.sendExcelReport(toEmail, subject, htmlBody, excelBytes, filename, workbookType);
-            log.info("✅ Email sent with attachment: {}", filename);
+            log.info("Email sent with attachment: {}", filename);
 
         } catch (jakarta.mail.MessagingException | java.io.UnsupportedEncodingException e) {
             // Không throw để không block download; chỉ log
-            log.error("❌ Failed to send email (export still succeeded): {}", e.getMessage());
+            log.error("Failed to send email (export still succeeded): {}", e.getMessage());
         }
     }
 
@@ -247,7 +195,7 @@ public class TransactionController {
         return """
             <html>
             <body style="font-family: Arial, sans-serif; color: #333;">
-                <h2 style="color: #1a73e8;">📊 Transaction Export Report</h2>
+                <h2 style="color: #1a73e8;">Transaction Export Report</h2>
                 <table style="border-collapse: collapse; width: 100%%;">
                     <tr>
                         <td style="padding: 8px; font-weight: bold;">Workbook Type</td>

@@ -18,13 +18,14 @@ import java.time.LocalDateTime;
 @Entity
 @Table(
     name = "TRANSACTIONS",
-    indexes = {
-        @Index(name = "idx_txn_ref_no",       columnList = "REFERENCE_NUMBER"),
-        @Index(name = "idx_txn_sender_acct",   columnList = "SENDER_ACCOUNT_NO"),
-        @Index(name = "idx_txn_receiver_acct", columnList = "RECEIVER_ACCOUNT_NO"),
-        @Index(name = "idx_txn_status",        columnList = "STATUS"),
-        @Index(name = "idx_txn_created_at",    columnList = "CREATED_AT")
-    }
+        indexes = {
+                @Index(name = "idx_txn_ref_no",       columnList = "REFERENCE_NUMBER"),
+                @Index(name = "idx_txn_sender_acct",   columnList = "SENDER_ACCOUNT_NO"),
+                @Index(name = "idx_txn_receiver_acct", columnList = "RECEIVER_ACCOUNT_NO"),
+
+                @Index(name = "idx_txn_created_id",    columnList = "CREATED_AT DESC, ID DESC"),
+                @Index(name = "idx_status_created",    columnList = "STATUS, CREATED_AT DESC")
+        }
 )
 @Getter
 @Setter
@@ -34,9 +35,7 @@ import java.time.LocalDateTime;
 @ToString
 public class Transaction {
 
-    // ─────────────────────────────────────────────
     // Primary Key – dùng Oracle sequence
-    // ─────────────────────────────────────────────
     @Id
     @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "transaction_seq_gen")
     @SequenceGenerator(
@@ -47,10 +46,7 @@ public class Transaction {
     @Column(name = "ID")
     private Long id;
 
-    // ─────────────────────────────────────────────
     // Thông tin định danh giao dịch
-    // ─────────────────────────────────────────────
-
     /** Mã tham chiếu duy nhất của giao dịch (UUID hoặc mã nội bộ) */
     @Column(name = "REFERENCE_NUMBER", nullable = false, unique = true, length = 64)
     private String referenceNumber;

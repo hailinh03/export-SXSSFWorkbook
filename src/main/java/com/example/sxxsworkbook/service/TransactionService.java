@@ -39,11 +39,6 @@ public class TransactionService {
     }
 
     @Transactional
-    public Transaction save(Transaction transaction) {
-        return transactionRepository.save(transaction);
-    }
-
-    @Transactional
     public void deleteById(Long id) {
         transactionRepository.deleteById(id);
     }
@@ -52,9 +47,7 @@ public class TransactionService {
         return transactionRepository.count();
     }
 
-    // ─────────────────────────────────────────────
     // Seed Data Generator
-    // ─────────────────────────────────────────────
 
     /**
      * Tạo n records ngẫu nhiên để test xuất Excel.
@@ -118,7 +111,7 @@ public class TransactionService {
                 .deviceInfo(devices[RANDOM.nextInt(devices.length)])
                 .otpReference(status == TransactionStatus.PENDING ? null : "OTP-" + RANDOM.nextInt(999999))
                 .orderId(type == TransactionType.PAYMENT ? "ORD-" + RANDOM.nextInt(1_000_000) : null)
-                .batchId(channel == TransactionChannel.BATCH ? "BATCH-2024-" + RANDOM.nextInt(9999) : null)
+                .batchId(channel == TransactionChannel.BATCH ? "BATCH-2026-" + RANDOM.nextInt(9999) : null)
                 .retryCount(isFailed ? RANDOM.nextInt(1, 4) : 0)
                 .errorCode(isFailed ? "ERR_" + RANDOM.nextInt(1000, 9999) : null)
                 .errorMessage(isFailed ? "Transaction declined: insufficient funds or timeout" : null)
@@ -147,10 +140,7 @@ public class TransactionService {
         return count;
     }
 
-    // ─────────────────────────────────────────────
     // Private helpers
-    // ─────────────────────────────────────────────
-
     private String randomAccountNo() {
         return String.format("%014d", RANDOM.nextLong(10_000_000_000_000L, 99_999_999_999_999L));
     }

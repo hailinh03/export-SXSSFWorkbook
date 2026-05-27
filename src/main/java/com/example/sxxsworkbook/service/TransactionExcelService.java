@@ -20,8 +20,8 @@ import java.util.stream.Stream;
 /**
  * Service xuất Excel bằng 2 cơ chế:
  *
- * 1. XSSFWorkbook  – load toàn bộ records vào RAM → sẽ gây OutOfMemoryError khi -Xmx16m
- * 2. SXSSFWorkbook – streaming, chỉ giữ N rows trong RAM → không bị OOM
+ * 1. XSSFWorkbook  – load toàn bộ records vào RAM
+ * 2. SXSSFWorkbook – streaming, chỉ giữ N rows trong RAM
  */
 @Service
 @RequiredArgsConstructor
@@ -33,9 +33,7 @@ public class TransactionExcelService {
     @Value("${app.excel.sxssf.row-access-window-size:100}")
     private int rowAccessWindowSize;
 
-    // ═══════════════════════════════════════════════════════════════════
     // Header columns
-    // ═══════════════════════════════════════════════════════════════════
     private static final String[] HEADERS = {
         "ID", "Reference No", "Type", "Status",
         "Sender Account", "Sender Name", "Sender Bank", "Sender Branch",
@@ -48,16 +46,11 @@ public class TransactionExcelService {
         "Created By", "Created At", "Updated At", "Completed At"
     };
 
-    // ═══════════════════════════════════════════════════════════════════
     // 1. XSSF Export – loads ALL rows into memory (❌ OOM with -Xmx16m)
-    // ═══════════════════════════════════════════════════════════════════
 
     /**
      * Xuất Excel dùng XSSFWorkbook.
      * Toàn bộ records được load vào memory cùng lúc.
-     * Với -Xmx16m và nhiều records → sẽ throw OutOfMemoryError.
-     *
-     * @return byte[] của file Excel
      */
     public byte[] exportWithXssf() throws IOException {
         log.warn("[XSSF] ⚠ Starting XSSFWorkbook export – ALL records loaded into memory!");
@@ -70,6 +63,7 @@ public class TransactionExcelService {
         try (XSSFWorkbook workbook = new XSSFWorkbook()) {
             Sheet sheet = workbook.createSheet("Transactions");
 
+            sheet.setAutoFilter(new org.apache.poi.ss.util.CellRangeAddress(0, 0, 0, HEADERS.length - 1));
             // Header styles
             CellStyle headerStyle = createHeaderStyle(workbook);
             CellStyle dataStyle   = createDataStyle(workbook);
@@ -103,16 +97,9 @@ public class TransactionExcelService {
         }
     }
 
-    // ═══════════════════════════════════════════════════════════════════
-    // 2. SXSSF Export – streaming, giữ N rows trong RAM (✅ an toàn OOM)
-    // ═══════════════════════════════════════════════════════════════════
-
+    // 2. SXSSF Export – streaming, giữ N rows trong RAM
     /**
      * Xuất Excel dùng SXSSFWorkbook (Streaming XSSF).
-     * Chỉ giữ {@code rowAccessWindowSize} rows trong memory; các row cũ hơn
-     * được flush xuống disk temp file → không bị OOM dù có hàng triệu records.
-     *
-     * @return byte[] của file Excel
      */
     @Transactional(readOnly = true)
     public byte[] exportWithSxssf() throws IOException {
@@ -124,7 +111,7 @@ public class TransactionExcelService {
             workbook.setCompressTempFiles(true);  // nén temp file trên disk
 
             Sheet sheet = workbook.createSheet("Transactions");
-
+            sheet.setAutoFilter(new org.apache.poi.ss.util.CellRangeAddress(0, 0, 0, HEADERS.length - 1));
             CellStyle headerStyle = createHeaderStyle(workbook);
             CellStyle dataStyle   = createDataStyle(workbook);
 
@@ -139,7 +126,7 @@ public class TransactionExcelService {
             // Stream records từ DB – không load hết vào memory
             AtomicInteger rowNum = new AtomicInteger(1);
             try (Stream<Transaction> stream = transactionRepository.streamAllOrderByCreatedAtDesc()) {
-                stream.forEach(txn -> {
+                    stream.forEach(txn -> {
                     Row row = sheet.createRow(rowNum.getAndIncrement());
                     fillRow(row, txn, dataStyle);
 
@@ -161,9 +148,7 @@ public class TransactionExcelService {
         }
     }
 
-    // ═══════════════════════════════════════════════════════════════════
     // Helper: điền dữ liệu vào 1 row
-    // ═══════════════════════════════════════════════════════════════════
     private void fillRow(Row row, Transaction txn, CellStyle style) {
         int col = 0;
         setCellValue(row, col++, txn.getId() != null ? txn.getId().toString() : "", style);
