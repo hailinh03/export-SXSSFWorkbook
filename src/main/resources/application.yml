@@ -38,8 +38,8 @@ spring:
   mail:
     host: smtp.gmail.com
     port: 587
-    username: linhnh4@smartosc.com         # <-- thay bằng email của bạn
-    password: dmos oelo ihjx rpqg       # <-- thay bằng Google App Password (16 ký tự)
+    username: ${mail.sender}    # <-- thay bằng email của bạn
+    password: ${mail.password}      # <-- thay bằng Google App Password (16 ký tự)
     properties:
       mail:
         smtp:
@@ -74,7 +74,7 @@ app:
       row-access-window-size: 100    # SXSSFWorkbook: only 100 rows kept in memory
   mail:
     sender-name: "Transaction Export System"
-    default-recipient: hailinh2910203@gmail.com   # <-- thay bằng email nhận
+    default-recipient: ${mail.received}   # <-- thay bằng email nhận
 
 # ==========================================
 # Logging
