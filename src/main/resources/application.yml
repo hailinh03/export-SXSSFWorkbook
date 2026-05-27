@@ -1,0 +1,86 @@
+spring:
+  application:
+    name: sxxsworkbook
+
+  # ==========================================
+  # Oracle DataSource Configuration
+  # ==========================================
+  datasource:
+    url: jdbc:oracle:thin:@//localhost:1521/FREEPDB1
+    username: report_excel_user
+    password: report_excel
+    driver-class-name: oracle.jdbc.OracleDriver
+    hikari:
+      pool-name: OracleHikariPool
+      maximum-pool-size: 10
+      minimum-idle: 2
+      connection-timeout: 30000
+      idle-timeout: 600000
+      max-lifetime: 1800000
+      connection-test-query: SELECT 1 FROM DUAL
+
+  # ==========================================
+  # JPA / Hibernate Configuration
+  # ==========================================
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: true
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.OracleDialect
+        format_sql: true
+        default_schema: REPORT_EXCEL_USER
+
+  # ==========================================
+  # Mail Configuration (Gmail + App Password)
+  # ==========================================
+  mail:
+    host: smtp.gmail.com
+    port: 587
+    username: linhnh4@smartosc.com         # <-- thay bằng email của bạn
+    password: dmos oelo ihjx rpqg       # <-- thay bằng Google App Password (16 ký tự)
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
+            required: true
+          connectiontimeout: 5000
+          timeout: 5000
+          writetimeout: 5000
+
+# ==========================================
+# Server Configuration
+# ==========================================
+server:
+  port: 8080
+  servlet:
+    context-path: /api
+
+# Springdoc / Swagger UI
+springdoc:
+  swagger-ui:
+    path: /swagger-ui.html
+    operationsSorter: method
+  api-docs:
+    path: /v3/api-docs
+
+# Application Custom Config
+app:
+  excel:
+    sxssf:
+      row-access-window-size: 100    # SXSSFWorkbook: only 100 rows kept in memory
+  mail:
+    sender-name: "Transaction Export System"
+    default-recipient: hailinh2910203@gmail.com   # <-- thay bằng email nhận
+
+# ==========================================
+# Logging
+# ==========================================
+logging:
+  level:
+    com.example.sxxsworkbook: DEBUG
+    org.hibernate.SQL: DEBUG
+    org.springframework.mail: DEBUG

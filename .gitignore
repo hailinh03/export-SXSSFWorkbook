@@ -1,0 +1,26 @@
+# 1. Java & Build Tools (Maven)
+target/
+!.mvn/wrapper/maven-wrapper.jar
+!**/src/main/**/target/
+!**/src/test/**/target/
+# IntelliJ IDEA
+.idea/
+*.iws
+*.iml
+*.ipr
+out/
+gen/
+
+
+#Hệ điều hành (File rác tự sinh)
+👁️‍🗨️ DS_Store
+Thumbs.db
+*.log
+*.tmp
+
+#Cấu hình bảo mật & Dữ liệu Docker
+.env
+application-local.properties
+application-local.yml
+
+oracle-init/
