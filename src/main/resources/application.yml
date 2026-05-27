@@ -63,7 +63,7 @@ app:
       row-access-window-size: 100    # SXSSFWorkbook: Chỉ giữ tối đa 100 dòng trên RAM
   mail:
     sender-name: "Transaction Export System"
-    default-recipient: ${SPRING_MAIL_RECEIVED} # Đọc từ file .env (Email hứng nhận file)
+    default-recipient: ${SPRING_MAIL_RECEIVED}
 
 # LOGGING SYSTEM CONFIGURATION
 logging:
