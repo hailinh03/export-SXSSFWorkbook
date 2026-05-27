@@ -1,10 +1,8 @@
+# SPRING BOOT CORE CONFIGURATION
 spring:
   application:
     name: sxxsworkbook
 
-  # ==========================================
-  # Oracle DataSource Configuration
-  # ==========================================
   datasource:
     url: jdbc:oracle:thin:@//localhost:1521/FREEPDB1
     username: report_excel_user
@@ -19,9 +17,6 @@ spring:
       max-lifetime: 1800000
       connection-test-query: SELECT 1 FROM DUAL
 
-  # ==========================================
-  # JPA / Hibernate Configuration
-  # ==========================================
   jpa:
     hibernate:
       ddl-auto: update
@@ -32,14 +27,11 @@ spring:
         format_sql: true
         default_schema: REPORT_EXCEL_USER
 
-  # ==========================================
-  # Mail Configuration (Gmail + App Password)
-  # ==========================================
   mail:
     host: smtp.gmail.com
     port: 587
-    username: ${mail.sender}    # <-- thay bằng email của bạn
-    password: ${mail.password}      # <-- thay bằng Google App Password (16 ký tự)
+    username: ${SPRING_MAIL_USERNAME}
+    password: ${SPRING_MAIL_PASSWORD}
     properties:
       mail:
         smtp:
@@ -51,15 +43,12 @@ spring:
           timeout: 5000
           writetimeout: 5000
 
-# ==========================================
-# Server Configuration
-# ==========================================
+# SERVER & API CONFIGURATION
 server:
   port: 8080
   servlet:
     context-path: /api
 
-# Springdoc / Swagger UI
 springdoc:
   swagger-ui:
     path: /swagger-ui.html
@@ -67,18 +56,16 @@ springdoc:
   api-docs:
     path: /v3/api-docs
 
-# Application Custom Config
+# APPLICATION CUSTOM CONFIGURATION
 app:
   excel:
     sxssf:
-      row-access-window-size: 100    # SXSSFWorkbook: only 100 rows kept in memory
+      row-access-window-size: 100    # SXSSFWorkbook: Chỉ giữ tối đa 100 dòng trên RAM
   mail:
     sender-name: "Transaction Export System"
-    default-recipient: ${mail.received}   # <-- thay bằng email nhận
+    default-recipient: ${SPRING_MAIL_RECEIVED} # Đọc từ file .env (Email hứng nhận file)
 
-# ==========================================
-# Logging
-# ==========================================
+# LOGGING SYSTEM CONFIGURATION
 logging:
   level:
     com.example.sxxsworkbook: DEBUG
