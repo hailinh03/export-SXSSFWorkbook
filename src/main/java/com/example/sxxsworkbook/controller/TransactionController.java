@@ -118,8 +118,7 @@ public class TransactionController {
             return buildExcelResponse(excelBytes, filename);
 
         } catch (OutOfMemoryError oom) {
-            // ❌ Đây là lỗi mong đợi khi dùng -Xmx16m
-            log.error("💥 [XSSF] OutOfMemoryError! JVM heap exhausted. Consider using /export/sxssf instead.", oom);
+            log.error("[XSSF] OutOfMemoryError! JVM heap exhausted. Consider using /export/sxssf instead.", oom);
             return ResponseEntity.status(HttpStatus.INSUFFICIENT_STORAGE)
                     .contentType(MediaType.APPLICATION_JSON)
                     .body(("{\"error\":\"OutOfMemoryError – XSSFWorkbook không thể xuất file khi heap quá nhỏ. " +

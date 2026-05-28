@@ -141,7 +141,7 @@ public class TransactionExcelService {
 
             ByteArrayOutputStream out = new ByteArrayOutputStream();
             workbook.write(out);
-            workbook.dispose();  // QUAN TRỌNG: xóa temp files trên disk
+          //  workbook.dispose();  // QUAN TRỌNG: xóa temp files trên disk
 
             log.info("[SXSSF] Export complete. File size: {} bytes", out.size());
             return out.toByteArray();
@@ -197,9 +197,7 @@ public class TransactionExcelService {
         cell.setCellStyle(style);
     }
 
-    // ═══════════════════════════════════════════════════════════════════
     // Style helpers – XSSF & SXSSF đều dùng Workbook interface
-    // ═══════════════════════════════════════════════════════════════════
     private CellStyle createHeaderStyle(Workbook workbook) {
         CellStyle style = workbook.createCellStyle();
         Font font = workbook.createFont();

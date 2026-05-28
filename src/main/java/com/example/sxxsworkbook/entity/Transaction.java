@@ -19,12 +19,7 @@ import java.time.LocalDateTime;
 @Table(
     name = "TRANSACTIONS",
         indexes = {
-                @Index(name = "idx_txn_ref_no",       columnList = "REFERENCE_NUMBER"),
-                @Index(name = "idx_txn_sender_acct",   columnList = "SENDER_ACCOUNT_NO"),
-                @Index(name = "idx_txn_receiver_acct", columnList = "RECEIVER_ACCOUNT_NO"),
-
-                @Index(name = "idx_txn_created_id",    columnList = "CREATED_AT DESC, ID DESC"),
-                @Index(name = "idx_status_created",    columnList = "STATUS, CREATED_AT DESC")
+                @Index(name = "idx_txn_created_id",    columnList = "CREATED_AT DESC, ID DESC")
         }
 )
 @Getter
