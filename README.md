@@ -1,7 +1,7 @@
 # 📊 XSSFWorkbook vs SXSSFWorkbook Demo — Oracle + Spring Boot
 
 > **Mục đích**: Demo trực quan sự khác biệt giữa `XSSFWorkbook` và `SXSSFWorkbook` (Apache POI)
-> khi xuất Excel với JVM bị giới hạn heap (`-Xmx16m`).
+> khi xuất Excel với JVM bị giới hạn heap (`-Xmx256m`).
 
 ---
 
@@ -34,18 +34,38 @@ docker logs -f oracle23-transaction-db
 > **Lưu ý**: Oracle 23ai mất ~2-3 phút để khởi động lần đầu. Chờ thấy dòng:
 > `DATABASE IS READY TO USE!`
 
-### 2. Cấu hình Email (Gmail App Password)
+---
 
-Trong `application.yaml`, sửa:
+### 2. Cấu hình Email (Environment Variables)
+
+Project sử dụng **biến môi trường** để bảo mật thông tin email, không hardcode vào `application.yml`.
+
+Tạo file `.env` ở thư mục gốc project:
+
+```env
+SPRING_MAIL_USERNAME=your-email@gmail.com
+SPRING_MAIL_PASSWORD=xxxx xxxx xxxx xxxx
+SPRING_MAIL_RECEIVED=recipient@gmail.com
+```
+
+`application.yml` sẽ đọc các biến này tự động:
 
 ```yaml
 spring:
   mail:
-    username: your-email@gmail.com
-    password: xxxx xxxx xxxx xxxx   # Google App Password (16 ký tự)
+    username: ${SPRING_MAIL_USERNAME}
+    password: ${SPRING_MAIL_PASSWORD}
+
+app:
+  mail:
+    default-recipient: ${SPRING_MAIL_RECEIVED}
 ```
 
 > **Cách lấy App Password**: Google Account → Security → 2-Step Verification → App passwords
+>
+> **Lưu ý**: File `.env` đã được thêm vào `.gitignore`. **Không commit file này lên Git.**
+
+---
 
 ### 3. Cấu hình IntelliJ IDEA với `-Xmx16m`
 
@@ -53,6 +73,8 @@ spring:
 Run → Edit Configurations → VM Options:
 -Xmx16m -Xms8m
 ```
+
+> Đây là bước quan trọng để tái hiện lỗi `OutOfMemoryError` với `XSSFWorkbook`.
 
 ### 4. Chạy ứng dụng
 
@@ -69,13 +91,22 @@ Hoặc trong IntelliJ: `Run SxxsworkbookApplication`
 **Base URL**: `http://localhost:8080/api`  
 **Swagger UI**: `http://localhost:8080/api/swagger-ui.html`
 
+### CRUD
+
+| Method   | Endpoint                          | Mô tả                          |
+|----------|-----------------------------------|--------------------------------|
+| `GET`    | `/transactions`                   | Lấy tất cả transactions        |
+| `GET`    | `/transactions/{id}`              | Lấy transaction theo ID        |
+| `GET`    | `/transactions/count`             | Đếm tổng số records            |
+| `DELETE` | `/transactions/{id}`              | Xóa transaction theo ID        |
+
 ### Seed Data
 
 ```http
 POST /api/transactions/seed?count=500
 ```
 
-Tạo 500 records ngẫu nhiên để test xuất Excel.
+Tạo `N` records ngẫu nhiên để test xuất Excel (mặc định 500, tối đa 50.000).
 
 ---
 
@@ -86,6 +117,11 @@ GET /api/transactions/export/xssf
 GET /api/transactions/export/xssf?sendEmail=true
 GET /api/transactions/export/xssf?sendEmail=true&toEmail=your@email.com
 ```
+
+| Tham số     | Kiểu      | Mặc định | Mô tả                                       |
+|-------------|-----------|----------|---------------------------------------------|
+| `sendEmail` | `boolean` | `false`  | Gửi email kèm file sau khi xuất             |
+| `toEmail`   | `String`  | *(trống)*| Email nhận – nếu trống dùng `default-recipient` trong config |
 
 **⚠️ Kết quả dự kiến với `-Xmx16m`:**
 
@@ -124,6 +160,11 @@ GET /api/transactions/export/sxssf?sendEmail=true
 GET /api/transactions/export/sxssf?sendEmail=true&toEmail=your@email.com
 ```
 
+| Tham số     | Kiểu      | Mặc định | Mô tả                                       |
+|-------------|-----------|----------|---------------------------------------------|
+| `sendEmail` | `boolean` | `false`  | Gửi email kèm file sau khi xuất             |
+| `toEmail`   | `String`  | *(trống)*| Email nhận – nếu trống dùng `default-recipient` trong config |
+
 **✅ Kết quả: File Excel tải xuống thành công, không OOM!**
 
 **Tại sao không bị OOM?**
@@ -151,7 +192,7 @@ SXSSFWorkbook dùng Sliding Window + Disk Temp File:
 // Window size = 100: chỉ 100 rows cuối trong RAM
 SXSSFWorkbook workbook = new SXSSFWorkbook(100);
 
-// Nén temp file trên disk để tiết kiệm dung lượng  
+// Nén temp file trên disk để tiết kiệm dung lượng
 workbook.setCompressTempFiles(true);
 
 // Stream từ DB thay vì findAll() → không load hết vào heap
@@ -170,6 +211,14 @@ workbook.dispose();
 ---
 
 ## 🗄️ Database Schema
+
+**Connection string:**
+
+```
+jdbc:oracle:thin:@//localhost:1521/FREEPDB1
+Username: report_excel_user
+Password: report_excel
+```
 
 ```sql
 -- Bảng TRANSACTIONS (tự tạo bởi Hibernate ddl-auto=update)
@@ -238,7 +287,7 @@ CREATE INDEX idx_txn_created_at    ON TRANSACTIONS(CREATED_AT);
 | **Cell style access**       | ✅ Tất cả rows       | ⚠️ Chỉ rows trong window  |
 | **Temp disk file**          | ❌ Không             | ✅ Có (có thể nén)         |
 | **Phù hợp số records**      | < 10.000             | Hàng triệu                |
-| **Streaming từ DB**         | ❌ Phải findAll()    | ✅ Dùng Stream<T>          |
+| **Streaming từ DB**         | ❌ Phải findAll()    | ✅ Dùng Stream\<T\>          |
 | **workbook.dispose()**      | Không cần            | ✅ Bắt buộc (dọn temp)    |
 
 ---
@@ -257,41 +306,47 @@ services:
     environment:
       ORACLE_PWD: "Oracle123#"       # SYS/SYSTEM password
       ORACLE_CHARACTERSET: "AL32UTF8"
-      ORACLE_PDB: "XEPDB1"           # Pluggable DB
     volumes:
       - oracle-data:/opt/oracle/oradata
-      - ./docker/oracle/init:/docker-entrypoint-initdb.d
+      - ./oracle-init:/docker-entrypoint-initdb.d
 ```
 
-**Connection string:**
-```
-jdbc:oracle:thin:@localhost:1521/XEPDB1
-Username: app_user
-Password: AppUser123#
-```
+> **Lưu ý**: PDB mặc định của Oracle 23ai Free là `FREEPDB1` (khác với `XEPDB1` của XE).
 
 ---
 
 ## 📧 Cấu hình Email
 
 ```yaml
+# application.yml – đọc từ biến môi trường
 spring:
   mail:
     host: smtp.gmail.com
     port: 587
-    username: your-email@gmail.com
-    password: "abcd efgh ijkl mnop"  # Google App Password
+    username: ${SPRING_MAIL_USERNAME}
+    password: ${SPRING_MAIL_PASSWORD}
     properties:
-      mail.smtp:
-        auth: true
-        starttls.enable: true
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
+            required: true
+          connectiontimeout: 10000
+          timeout: 60000
+          writetimeout: 60000
+
+app:
+  mail:
+    sender-name: "Transaction Export System"
+    default-recipient: ${SPRING_MAIL_RECEIVED}
 ```
 
 **Cách tạo Google App Password:**
 1. Vào Google Account → Security
 2. Bật 2-Step Verification (nếu chưa bật)
 3. Tìm "App passwords" → Tạo mới
-4. Copy 16 ký tự → dán vào `password` trong yaml
+4. Copy 16 ký tự → dán vào file `.env`
 
 ---
 
@@ -299,28 +354,31 @@ spring:
 
 ```
 sxxsworkbook/
+├── .env                               ← Biến môi trường (KHÔNG commit lên Git!)
 ├── docker-compose.yml
-├── docker/
-│   └── oracle/
-│       └── init/
-│           └── 01_init.sql            ← Tạo app_user + sequence
+├── oracle-init/
+│   └── 01_init.sql                    ← Tạo report_excel_user + sequence
 ├── pom.xml
 └── src/
     └── main/
         ├── java/com/example/sxxsworkbook/
         │   ├── SxxsworkbookApplication.java
         │   ├── controller/
-        │   │   └── TransactionController.java  ← 5 REST APIs
+        │   │   └── TransactionController.java   ← 6 REST APIs
         │   ├── entity/
-        │   │   └── Transaction.java            ← 32 trường chi tiết
+        │   │   └── Transaction.java             ← 32 trường chi tiết
+        │   ├── enums/
+        │   │   ├── TransactionType.java         ← TRANSFER|PAYMENT|DEPOSIT|...
+        │   │   ├── TransactionStatus.java       ← PENDING|SUCCESS|FAILED|...
+        │   │   └── Channel.java                 ← MOBILE_APP|ATM|API|...
         │   ├── repository/
-        │   │   └── TransactionRepository.java  ← JPA + Stream
+        │   │   └── TransactionRepository.java   ← JPA + Stream<T>
         │   └── service/
-        │       ├── TransactionService.java     ← CRUD + seed data
-        │       ├── TransactionExcelService.java← XSSF & SXSSF export
-        │       └── EmailService.java           ← Gửi email + attachment
+        │       ├── TransactionService.java      ← CRUD + seed data
+        │       ├── TransactionExcelService.java ← XSSF & SXSSF export
+        │       └── EmailService.java            ← Gửi email + attachment
         └── resources/
-            └── application.yaml               ← Oracle + Mail config
+            └── application.yml                  ← Oracle + Mail config
 ```
 
 ---
@@ -331,19 +389,24 @@ sxxsworkbook/
 # 1. Start Oracle
 docker-compose up -d
 
-# 2. Chạy app với -Xmx16m trong IntelliJ
+# 2. Tạo file .env với thông tin email
+echo "SPRING_MAIL_USERNAME=your@gmail.com" > .env
+echo "SPRING_MAIL_PASSWORD=xxxx xxxx xxxx xxxx" >> .env
+echo "SPRING_MAIL_RECEIVED=recipient@gmail.com" >> .env
+
+# 3. Chạy app với -Xmx16m trong IntelliJ
 #    VM Options: -Xmx16m -Xms8m
 
-# 3. Tạo 500 records test
+# 4. Tạo 500 records test
 curl -X POST "http://localhost:8080/api/transactions/seed?count=500"
 
-# 4. Thử XSSF → Sẽ bị OOM (hoặc chậm + dùng nhiều RAM)
+# 5. Thử XSSF → Sẽ bị OOM (với -Xmx16m)
 curl "http://localhost:8080/api/transactions/export/xssf" -o test_xssf.xlsx
 
-# 5. Thử SXSSF → Thành công
+# 6. Thử SXSSF → Thành công
 curl "http://localhost:8080/api/transactions/export/sxssf" -o test_sxssf.xlsx
 
-# 6. Xuất + gửi email (thay email của bạn)
+# 7. Xuất + gửi email (thay email của bạn)
 curl "http://localhost:8080/api/transactions/export/sxssf?sendEmail=true&toEmail=your@email.com" -o report.xlsx
 ```
 
@@ -352,18 +415,21 @@ curl "http://localhost:8080/api/transactions/export/sxssf?sendEmail=true&toEmail
 ## 💡 Lưu ý quan trọng
 
 > [!IMPORTANT]
-> Nhớ gọi `workbook.dispose()` sau khi dùng SXSSFWorkbook để xóa temp files trên disk.
+> Nhớ gọi `workbook.dispose()` sau khi dùng `SXSSFWorkbook` để xóa temp files trên disk.
 > Nếu không, các file temp sẽ tích lũy trong `/tmp/` của hệ thống.
 
 > [!WARNING]
-> SXSSFWorkbook **không hỗ trợ** `sheet.autoSizeColumn()` vì các rows cũ đã bị flush xuống disk.
+> `SXSSFWorkbook` **không hỗ trợ** `sheet.autoSizeColumn()` vì các rows cũ đã bị flush xuống disk.
 > Cần set column width thủ công: `sheet.setColumnWidth(i, 5000)`.
 
+> [!WARNING]
+> **Không commit file `.env`** lên Git. File này chứa App Password Gmail của bạn.
+> Kiểm tra `.gitignore` đã có entry cho `.env`.
+
 > [!TIP]
-> Với dataset lớn (> 100K records), kết hợp SXSSFWorkbook + `Stream<T>` từ JPA + `@Transactional(readOnly=true)`
+> Với dataset lớn (> 100K records), kết hợp `SXSSFWorkbook` + `Stream<T>` từ JPA + `@Transactional(readOnly=true)`
 > để tối ưu cả memory lẫn DB cursor.
 
 ---
 
-*Generated by Transaction Export Demo | Spring Boot 3.3.5 + Apache POI 5.3.0 + Oracle 23ai*
-# export-sxxsworkbook
+*Transaction Export Demo | Spring Boot 3.3.5 + Apache POI 5.3.0 + Oracle 23ai Free*
