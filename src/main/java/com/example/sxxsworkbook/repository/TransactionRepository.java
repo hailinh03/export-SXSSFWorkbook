@@ -1,8 +1,10 @@
 package com.example.sxxsworkbook.repository;
 
 import com.example.sxxsworkbook.entity.Transaction;
+import jakarta.persistence.QueryHint;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.jpa.repository.QueryHints;
 import org.springframework.stereotype.Repository;
 
 import java.util.stream.Stream;
@@ -18,6 +20,7 @@ public interface TransactionRepository extends JpaRepository<Transaction, Long> 
      * Stream tất cả transactions – dùng với @Transactional(readOnly=true)
      * để Hibernate scroll cursor thay vì load hết vào RAM.
      */
+    //@QueryHints(value = @QueryHint(name = org.hibernate.jpa.HibernateHints.HINT_FETCH_SIZE, value = "500"))
     @Query("SELECT t FROM Transaction t ORDER BY t.createdAt DESC, t.id DESC")
     Stream<Transaction> streamAllOrderByCreatedAtDesc();
 }
